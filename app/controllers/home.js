@@ -38,8 +38,8 @@ exports.vote = async ctx => {
   const result = {}
 
   try {
-    const [ poll ] = await models.Poll.find({ _id: ObjectID(pollId) })
-    if (!poll) throw new Error('no poll found')
+    const [ poll ] = await models.Poll.find({ _id: ObjectID(pollId) }, {available: true})
+    if (!poll) throw new Error('no poll found or it has finished')
 
     result.result = await poll.vote(userId, idArray)
   } catch (e) {
@@ -47,4 +47,36 @@ exports.vote = async ctx => {
   }
 
   ctx.res.ok(result, !result.result ? 'something went wrong' : 'voted')
+}
+
+/**
+ * Get all polls for specific user
+ */
+exports.getUserPoll = async ctx => {
+  const { userId } = ctx.query
+  const result = {}
+
+  try {
+    result.poll = await models.Poll.getUserPoll({userId: Number(userId)})
+  } catch (e) {
+    console.log(e);
+  }
+  ctx.res.ok(result, 'user poll')
+}
+
+/**
+ * Close specified poll
+ * @param  {[type]}  ctx [description]
+ * @return {Promise}     [description]
+ */
+exports.closePoll = async ctx => {
+  const { pollId } = ctx.query
+  const result = {}
+
+  try {
+    result.poll = await models.Poll.closeAndGetResult({ _id: ObjectID(pollId) })
+  } catch (e) {
+    console.log(e);
+  }
+  ctx.res.ok(result, 'closed poll')
 }

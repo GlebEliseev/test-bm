@@ -26,12 +26,17 @@ const model = new mongoose.Schema(extend({
   target: { // привязка опроса к какой-либо внещней сущности, в данном случае – к постам
     model: { type: String, enum: targetModels },
     item: { type: Number } // тут тоже облегчил – убрал связь с сторонними моделями
-  }
+  },
+  available: true
 }, is))
 
 model.index({ 'userId': 1 })
 model.index({ 'target.item': 1 })
 
+/**
+ * Virtual options field
+ * @type {String}
+ */
 model.virtual('options', {
   ref: 'PostPollOption',
   localField: '_id',
@@ -174,6 +179,47 @@ model.statics.getPollInfo = function (params = {}, options = {}) {
       options: 1
     }}
   ])
+}
+
+/**
+ * Get all polls for specific user
+ * @param  {Object} [params={}] [userId is passed as a parameter to match]
+ * @return {[type]}             [All polls with votes and options]
+ */
+model.statics.getUserPoll = async function (params = {}) {
+  const model = this
+  return model.aggregate([
+    { $match: {
+      userId: params.userId
+    }},
+    { $lookup: {
+      from: 'polloptions',
+      localField: '_id',
+      foreignField: 'pollId',
+      as: 'options'
+    }},
+    { $project: {
+      title: 1,
+      multi: 1,
+      target: 1,
+      options: 1,
+      userId: 1,
+      available: 1,
+    }}
+  ])
+}
+
+model.statics.closeAndGetResult = async function (params = {}) {
+  const model = this
+
+  return model.update(
+    {
+      _id: params._id
+    },
+    { $set: {
+      available: false
+    }}
+  )
 }
 
 model.statics.getPostPolls = async function (params = {}) {
