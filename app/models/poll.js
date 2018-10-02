@@ -27,7 +27,8 @@ const model = new mongoose.Schema(extend({
     model: { type: String, enum: targetModels },
     item: { type: Number } // тут тоже облегчил – убрал связь с сторонними моделями
   },
-  available: true
+  available: { type: Boolean, default: true },
+  winner: { type: ObjectId, ref: 'PollOption'}
 }, is))
 
 model.index({ 'userId': 1 })
@@ -209,17 +210,42 @@ model.statics.getUserPoll = async function (params = {}) {
   ])
 }
 
+// model.statics.closeAndGetResult = async function (params = {}) {
+//   const model = this
+//   model.update(
+//     {
+//       _id: params._id
+//     },
+//     { $set: {
+//       available: false
+//     }}
+//   )
+//   return model.find({_id: params._id}).populate('PollOption')
+// }
+
 model.statics.closeAndGetResult = async function (params = {}) {
   const model = this
 
-  return model.update(
+  let pollOptions = await mongoose.models.PollOption.find({ pollId: params._id}).select('_id votes enabled value')
+  let winningVote
+  let currentCount = 0
+  pollOptions.map( option => {
+    //Does not cater for same votes
+    if (option.votes.length >= currentCount) {
+      currentCount = option.votes.length
+      winningVote = option._id;
+    }
+  })
+  model.update(
     {
       _id: params._id
     },
     { $set: {
-      available: false
+      available: false,
+      winner: ObjectID(winningVote)
     }}
   )
+  return model.find({_id: params._id}).populate('winner')
 }
 
 model.statics.getPostPolls = async function (params = {}) {

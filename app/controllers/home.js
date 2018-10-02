@@ -75,8 +75,10 @@ exports.closePoll = async ctx => {
 
   try {
     result.poll = await models.Poll.closeAndGetResult({ _id: ObjectID(pollId) })
+
   } catch (e) {
     console.log(e);
   }
   ctx.res.ok(result, 'closed poll')
+
 }
