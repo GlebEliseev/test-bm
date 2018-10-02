@@ -11,6 +11,10 @@ const ObjectId = mongoose.Schema.Types.ObjectId
 
 const targetModels = [ 'Post' ]
 
+/**
+ * Model for particular poll
+ * @type {mongoose}
+ */
 const model = new mongoose.Schema(extend({
   userId: { type: Number, required: true }, // в реальном проекте тут – ссылка на модель Users. Чтобы ты смог тут что-то пробовать – заменил на числовое поле
   //
@@ -36,6 +40,15 @@ model.virtual('options', {
 
 model.statics.PollOption = require('./option')
 
+/**
+ * Create new poll with following params
+ * @param  {[Number]}  userId        [ID of the creator]
+ * @param  {Object}  [target={}]   [Attach poll to specific target]
+ * @param  {Array}   [options=[]]  [Options that are available in the poll]
+ * @param  {[String]}  title         [Title of the poll]
+ * @param  {Boolean} [multi=false] [Poll can have multiple choice answers. default: false]
+ * @return {[model]}                [Return the poll itself]
+ */
 model.statics.makePoll = async function (userId, target = {}, options = [], title, multi = false) {
   const model = this
   if (!target.model || !target.item) throw new Error('no target specified')
@@ -47,6 +60,11 @@ model.statics.makePoll = async function (userId, target = {}, options = [], titl
   return poll
 }
 
+/**
+ * Add required options to the poll
+ * @param  {[Array]} options [Options to be addded to the poll]
+ * @return {[Promise]}         [Promise to create the options passed via params]
+ */
 model.methods.setOptions = function (options) {
   const poll = this
 
@@ -55,6 +73,12 @@ model.methods.setOptions = function (options) {
   )))
 }
 
+/**
+ * Handle the voting procedure
+ * @param  {[Number]} userId    [User that voted for particulat option]
+ * @param  {Array}  [data=[]] [Data to be updated in the database]
+ * @return {[WriteResult]}           [Updating the database with vote]
+ */
 model.methods.vote = function (userId, data = []) {
   const poll = this
 
@@ -68,6 +92,11 @@ model.methods.vote = function (userId, data = []) {
   )
 }
 
+/**
+ * Function to edit options in the poll if they are not already there
+ * @param  {Array}  [options=[]] [Options to be added]
+ * @return {[type]}              [description]
+ */
 model.methods.editOptions = async function (options = []) {
   const poll = this
 
@@ -91,6 +120,12 @@ model.methods.editOptions = async function (options = []) {
   return poll.setOptions(missed)
 }
 
+/**
+ * Get the poll info from the database
+ * @param  {Object} [params={}]  [Match the model with this params]
+ * @param  {Object} [options={}] [Get the userId to check if vote was register for this user]
+ * @return {[model]}              [Return all the asked information]
+ */
 model.statics.getPollInfo = function (params = {}, options = {}) {
   const model = this
 
